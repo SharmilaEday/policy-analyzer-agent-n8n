@@ -116,7 +116,7 @@ Each run sends an auto-formatted email containing:
 
 ---
 
-## 🔮 Planned Improvements
+## Planned Improvements
 
 - [ ] Multi-source aggregation with deduplication
 - [ ] Slack notification integration
