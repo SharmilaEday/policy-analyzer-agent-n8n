@@ -1,0 +1,322 @@
+{
+  "name": "Research Reporter Agent_2",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=# Role\nYou are a Junior Policy Analyst Assistant. Your purpose is to conduct efficient web research and output structured JSON data for a spreadsheet.\n\n# Context Awareness\n\nToday's Date: {{ $now.toFormat('MMMM dd, yyyy') }}\n\nCurrent Year: {{ $now.year }}\n\nStrict Rule: When using the Google Search tool, you MUST include \"2026\" or \"February 2026\" in your search queries to ensure you find the most recent policy updates.\n\n# Mandatory Efficiency Protocol (Guardrails)\nTo prevent system crashes and timeouts, you MUST follow these strict resource limits:\n\nSearch Phase: Use Google Search to find the most relevant articles. You MUST only select the top 2 URLs for further processing.\n\nScrape Phase: Use web_scraper on the 2 selected URLs. MANDATORY: Only read the first 5,000 characters of any webpage. If a page is longer, focus only on the introduction and \"Eligibility\" or \"Funding\" sections.\n\nReasoning: Do not get stuck in a loop. If a tool fails once, move on to the next best source or summarize what you have found so far.\n\n# Process Steps\n\nResearch: Use live tools for every query. Do not answer from internal memory.\n\nAnalyze: Extract the key policy issue, a 2-sentence summary, and sentiment (Positive/Neutral/Negative).\n\n# Final Output Requirement\nProvide ONLY a JSON object with a \"results\" array. No conversational text, no markdown code blocks.\n{\n\"results\": [\n{\n\"id\": \"{{ $now.toFormat('ssmm') }}\",\n\"title\": \"Article Title\",\n\"summary\": \"Focus on policy impact.\",\n\"sentiment\": \"Positive/Neutral/Negative\",\n\"body\": \"Brief excerpt of scraped text (max 300 words).\"\n}\n]\n}\n\n# Constraints\n\nReturn {\"results\": []} if no data is found.\n\nLimit total iterations to prevent timeouts.",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        752,
+        -176
+      ],
+      "id": "96e16976-8507-4d94-90a1-97c8dcdd7d8e",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        656,
+        48
+      ],
+      "id": "426fe672-29fb-42c3-ad4e-32408356e06f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LNq5XyxtekaWGK4D",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        816,
+        48
+      ],
+      "id": "7e57cd90-34e0-4bb2-901d-6dce1c69d5cd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "sendTo": "edaysharmila@gmail.com",
+        "subject": "Daily Policy Update – Summary & Sentiment",
+        "message": "=<b>Policy Update Logged:</b><br><br>\n\n<b>Title:</b> {{ $json.Title }}<br>\n<b>Summary:</b> {{ $json.Summary }}<br>\n<b>Sentiment:</b> {{ $json.Sentiment }}<br>\n<b>Date:</b> {{ $json.Date }}<br>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1424,
+        -176
+      ],
+      "id": "69a0aafe-c855-4fcd-9a15-bbe3360c83f8",
+      "name": "Send a message",
+      "webhookId": "17f53330-37b2-4ec5-944e-102886e0e360",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MSKB1FenATXVjpZz",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1LWZZKEGYG2EY8KCQWfggAHTL6r5Q-n7wOLRk8JUp0ns",
+          "mode": "list",
+          "cachedResultName": "Extracted research data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LWZZKEGYG2EY8KCQWfggAHTL6r5Q-n7wOLRk8JUp0ns/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1764691653,
+          "mode": "list",
+          "cachedResultName": "Social research data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LWZZKEGYG2EY8KCQWfggAHTL6r5Q-n7wOLRk8JUp0ns/edit#gid=1764691653"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Summary": "={{ JSON.parse($json.output.replace(/```json|```/g, '').trim()).results[0].summary }}",
+            "Sentiment": "={{ JSON.parse($json.output.replace(/```json|```/g, '').trim()).results[0].sentiment }}",
+            "Date": "={{ $now }}",
+            "Title": "={{ JSON.parse($json.output.replace(/```json|```/g, '').trim()).results[0].title }}"
+          },
+          "matchingColumns": [
+            "Title"
+          ],
+          "schema": [
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sentiment",
+              "displayName": "Sentiment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1152,
+        -176
+      ],
+      "id": "3971532a-cc67-4eef-a68c-430f5f8bc16e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "m3F1EzJKI0sERCiu",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        576,
+        -176
+      ],
+      "id": "9ff1d551-1b1c-4a4b-88f4-16a177edbbd7",
+      "name": "When chat message received",
+      "webhookId": "35e5082a-02ed-40eb-8f30-4764a33bcb89"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to extract the full body text and content from a specific URL. Use this after finding relevant links with the search tool to read the details for summary and sentiment analysis. Input must be a valid URL.",
+        "operation": "scrape",
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('URL', ``, 'string') }}",
+        "parsers": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Parsers', ``, 'string') }}",
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawlTool",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        32
+      ],
+      "id": "07725ce2-ee90-4f5c-9dda-4c4973d69732",
+      "name": "web_scraper",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "ZCmrpCD3tqJdi672",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to search the internet for the most recent news, policy updates, and article URLs. Mandatory for gathering up-to-date information that is not in your training data. Input should be a specific search query string.",
+        "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__q_', ``, 'string') }}",
+        "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Location__location_', ``, 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        960,
+        48
+      ],
+      "id": "5356052c-80e4-4186-b800-af02ad8a84d6",
+      "name": "Google Search",
+      "credentials": {
+        "serpApi": {
+          "id": "bZdLZoqmwhEzzfgi",
+          "name": "SerpAPI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "web_scraper": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c335c4ee-d1cd-45bb-b60a-b3fb8752c9b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9be7f55ad62d6ccee70473c734559efb8564ca28c37e60577b5a3fb86519697c"
+  },
+  "id": "kpz55W0gwWpvaHy4",
+  "tags": []
+}
